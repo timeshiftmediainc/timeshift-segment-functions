@@ -42,11 +42,11 @@ async function onIdentify(event, settings) {
 	if (traits.email || traits.username) {
 		event.traits.email = traits.email || traits.username;
 	}
-	if (traits.firstName) {
-		event.traits.firstName = traits.firstName;
+	if (traits.first_name) {
+		event.traits.firstName = traits.first_name;
 	}
-	if (traits.lastName) {
-		event.traits.lastName = traits.lastName;
+	if (traits.last_name) {
+		event.traits.lastName = traits.last_name;
 	}
 
 	console.log(JSON.stringify(event, null, 2));
@@ -55,7 +55,7 @@ async function onIdentify(event, settings) {
 }
 
 function camelToTitleWithSpaces(str) {
-	const result = str.replace(/([A-Z])/g, ' $1'); // Insert space before capital letters
+	const result = str.replace(/([A-Z])/g, ' $1').trim(); // Insert space before capital letters
 	return result.charAt(0).toUpperCase() + result.slice(1); // Capitalize the first letter
 }
 

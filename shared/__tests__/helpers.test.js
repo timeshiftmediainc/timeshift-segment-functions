@@ -13,9 +13,9 @@ describe('camelToTitleWithSpaces', () => {
 		expect(camelToTitleWithSpaces('channelYogaAnytime')).toBe('Channel Yoga Anytime');
 	});
 
-	it('produces leading space when first letter is already uppercase', () => {
+	it('does not produce leading space when first letter is already uppercase', () => {
 		// Known quirk: input should be camelCase (lowercase first letter)
-		expect(camelToTitleWithSpaces('PilatesAnytime')).toBe(' Pilates Anytime');
+		expect(camelToTitleWithSpaces('PilatesAnytime')).toBe('Pilates Anytime');
 	});
 });
 

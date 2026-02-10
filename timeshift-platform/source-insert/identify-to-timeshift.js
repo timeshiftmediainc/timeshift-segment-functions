@@ -53,7 +53,7 @@ async function onIdentify(event, settings) {
 }
 
 function camelToTitleWithSpaces(str) {
-	const result = str.replace(/([A-Z])/g, ' $1'); // Insert space before capital letters
+	const result = str.replace(/([A-Z])/g, ' $1').trim(); // Insert space before capital letters
 	return result.charAt(0).toUpperCase() + result.slice(1); // Capitalize the first letter
 }
 
