@@ -101,3 +101,7 @@ async function onDelete(event, settings) {
 	// Learn more at https://segment.com/docs/partners/spec/#delete
 	return event;
 }
+
+if (typeof module !== 'undefined') {
+	module.exports = { onTrack, onIdentify, onGroup, onPage, onScreen, onAlias, onDelete };
+}

@@ -8,10 +8,64 @@ async function onTrack(event, settings) {
 	if (!event.userId || event.userId === '') {
 		throw new DropEvent('userId not provided');
 	}
-
-	if (!event.properties || !event.properties.brand) {
-		throw new DropEvent('brand property not provided');
+	if (event.event === 'Account Created - Server') {
+		//console.log("Account Created - Server, sleeping 2000 ms");
+		new Promise(resolve => setTimeout(resolve, 2000));
 	}
+	const endpoint = `${settings.apiHost}/user/v1/identity/${settings.brand}/${event.userId}`;
+	const ttl = 60; // TODO update to 60*60 for 1 hour for prod
+	let identity = await cache.load(endpoint, ttl, async () => {
+		try {
+			const response = await fetch(endpoint, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${settings.timeshiftApiBearerToken}`,
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (response.status >= 500 || response.status === 429) {
+				// Retry on 5xx (server errors) and 429s (rate limits)
+				throw new RetryError(`Failed with ${response.status}`);
+			}
+
+			// Iterable can't use an event without a timeshift userId
+			if (response.status === 404) {
+				if (
+					event.event === 'Account Created - Server' &&
+					event?.properties?.email
+				) {
+					const hash = crypto
+						.createHash('sha256')
+						.update(
+							`${event.properties.email.trim().toLowerCase()}timeshiftMEDIA@@@@@@@@@@@@@@@@@@@@@@@@@`
+						)
+						.digest('hex');
+					const userId = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`;
+					return { [settings.brand]: event.userId, timeshift: userId };
+				} else {
+					throw new DropEvent('Identity not found');
+				}
+			}
+
+			return response.json();
+		} catch (error) {
+			// If it's already a RetryError or DropEvent, re-throw as-is
+			if (error instanceof RetryError || error instanceof DropEvent) {
+				throw error;
+			}
+
+			// Retry on connection errors and other unexpected errors
+			throw new RetryError(`Connection or parsing error: ${error.message}`);
+		}
+	});
+
+	// Iterable can't use an event without a timeshift userId
+	if (!identity.timeshift) {
+		throw new DropEvent('Identity not found');
+	}
+	event.userId = identity.timeshift;
+	event.properties.brand = camelToTitleWithSpaces(settings.brand);
 
 	console.log(event);
 
@@ -188,4 +242,8 @@ async function onAlias(event, settings) {
 async function onDelete(event, settings) {
 	// Learn more at https://segment.com/docs/partners/spec/#delete
 	throw new EventNotSupported('delete is not supported');
+}
+
+if (typeof module !== 'undefined') {
+	module.exports = { onTrack, onIdentify, onGroup, onPage, onScreen, onAlias, onDelete, camelToTitleWithSpaces, snakeToCamel };
 }

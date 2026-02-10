@@ -6,11 +6,14 @@
 async function onTrack(event, settings) {
 	// Learn more at https://segment.com/docs/connections/spec/track/
 
+	// TODO handle mapping from PA/YA customerId to Timeshift userId
+
 	// default brand is "Channel Yoga"
-	// we should remove this once the backend sends the brand
+	// once the backend sends the brand, we should drop events missing the brand property
 	if (!event.properties || !event.properties.brand) {
 		event.properties.brand = 'Channel Yoga';
 	}
+	console.log(event);
 	return event;
 }
 
@@ -25,64 +28,28 @@ async function onTrack(event, settings) {
  */
 async function onIdentify(event, settings) {
 	// Learn more at https://segment.com/docs/connections/spec/identify/
-	const getEndpoint = `${settings.apiHost}/user/v1/identity/timeshift/${event.userId}`;
-	const getResponse = await fetch(getEndpoint, {
-		method: 'GET',
-		headers: {
-			Authorization: `Bearer ${settings.timeshiftApiBearerToken}`,
-			'Content-Type': 'application/json'
-		}
-	});
-	if (getResponse.status === 404) {
-		// identity does not exist yet, so we need to create it
-		const postEndpoint = `${settings.apiHost}/user/v1/identity`;
-		const postResponse = await fetch(postEndpoint, {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${settings.timeshiftApiBearerToken}`,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ timeshift: event.userId })
-		});
-		console.log(
-			`POST'd identity for timeshift ${event.userId}`
-		);
-	}
 
-	let traits = event.traits || {};
+	// TODO handle mapping from PA/YA customerId to Timeshift userId
+	// TODO map the traits to brand_pilatesAnytime or brand_channelYoga ?
+	// we may need to do this upstream at the Segment implementation because we might not know the brand
+
+	let traits = event?.traits || {};
 	// traits need to be nested under a brand object
 	if (event.traits) {
-		let brand = 'Channel Yoga'; // default brand is "Channel Yoga"
-		Object.keys(event.traits).forEach(key => {
-			// if key starts with "brand_" then we know which brand it belongs to and we can nest it under the correct brand
-			if (key.startsWith('brand_')) {
-				brand = key.split('_')[1];
-				brand = camelToTitleWithSpaces(brand);
-			}
-		});
+		let brand = traits?.brand || 'channelYoga'; // default brand is Channel Yoga
+
+		// if event.traits has exactly 1 key and that key starts with "brand_" then we don't need to transform the traits
+		// otherwise, put all traits under "brand_{brandName}"
+		if (Object.keys(traits).length !== 1 || !Object.keys(traits)[0].startsWith('brand_')) {
+			 traits = { [`brand_${brand}`]: event.traits };
+		}
 	}
+
+	delete event.traits;
+	event.traits = traits;
 
 	console.log(event);
 	return event;
-}
-
-/**
- * turn traits from { traits: { plan_status: 'active' } } to { traits: { 'brand_channelYoga': { plan_status: 'active' } } }
- * or leave a properly-shaped traits like { traits: { 'brand_channelYoga': { plan_status: 'active' } } } as is 
- * @param {*} traits 
- */
-function normalizeTraitsForBrand(traits) {
-	if (!traits) return traits;
-
-	let normalizedTraits = {};
-	Object.keys(traits).forEach(key => {
-		if (key.startsWith('brand_')) {
-			normalizedTraits[key] = traits[key];
-		} else {
-			normalizedTraits[`brand_channelYoga`][`${key}`] = traits[key];
-		}
-	});
-	return normalizedTraits;
 }
 
 function camelToTitleWithSpaces(str) {
@@ -138,4 +105,8 @@ async function onAlias(event, settings) {
 async function onDelete(event, settings) {
 	// Learn more at https://segment.com/docs/partners/spec/#delete
 	return event;
+}
+
+if (typeof module !== 'undefined') {
+	module.exports = { onTrack, onIdentify, onGroup, onPage, onScreen, onAlias, onDelete, camelToTitleWithSpaces };
 }

@@ -1,0 +1,12 @@
+{
+  "name": "timeshift-segment-functions",
+  "version": "1.0.0",
+  "description": "Segment Insert Functions for Pilates Anytime, Yoga Anytime, and Timeshift Platform workspaces",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}
