@@ -25,7 +25,7 @@ async function onIdentify(event, settings) {
 
 	let traits = event?.traits || {};
 	// traits need to be nested under a brand object
-	if (event.traits) {
+	if (traits) {
 		let brandName = traits?.brand || 'channelYoga'; // default brand is Channel Yoga
 
 		// if event.traits has exactly 1 key and that key starts with "brand_" then we don't need to transform the traits
@@ -34,10 +34,9 @@ async function onIdentify(event, settings) {
 			Object.keys(traits).length !== 1 ||
 			!Object.keys(traits)[0].startsWith('brand_')
 		) {
-			traits = { [`brand_${brandName}`]: event.traits };
+			event.traits = { [`brand_${brandName}`]: snakeToCamel(traits) };
 		}
 	}
-	event.traits = traits;
 
 	// email, firstName, lastName live at the root user field level
 	if (traits.email || traits.username) {
