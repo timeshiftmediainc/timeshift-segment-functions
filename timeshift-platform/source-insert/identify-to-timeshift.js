@@ -5,6 +5,15 @@
  */
 async function onTrack(event, settings) {
 	// Learn more at https://segment.com/docs/connections/spec/track/
+
+	// TODO handle mapping from PA/YA customerId to Timeshift userId
+
+	// default brand is "Channel Yoga"
+	// once the backend sends the brand, we should drop events missing the brand property
+	if (!event.properties || !event.properties.brand) {
+		event.properties.brand = 'Channel Yoga';
+	}
+	console.log(event);
 	return event;
 }
 
@@ -19,37 +28,33 @@ async function onTrack(event, settings) {
  */
 async function onIdentify(event, settings) {
 	// Learn more at https://segment.com/docs/connections/spec/identify/
-	const customerId = event.userId;
-	const getEndpoint = `${settings.apiHost}/user/v1/identity/${settings.brand}/${customerId}`;
-	const getResponse = await fetch(getEndpoint, {
-		method: 'GET',
-		headers: {
-			Authorization: `Bearer ${settings.timeshiftApiBearerToken}`,
-			'Content-Type': 'application/json'
+
+	// TODO handle mapping from PA/YA customerId to Timeshift userId
+	// TODO map the traits to brand_pilatesAnytime or brand_channelYoga ?
+	// we may need to do this upstream at the Segment implementation because we might not know the brand
+
+	let traits = event?.traits || {};
+	// traits need to be nested under a brand object
+	if (event.traits) {
+		let brand = traits?.brand || 'channelYoga'; // default brand is Channel Yoga
+
+		// if event.traits has exactly 1 key and that key starts with "brand_" then we don't need to transform the traits
+		// otherwise, put all traits under "brand_{brandName}"
+		if (Object.keys(traits).length !== 1 || !Object.keys(traits)[0].startsWith('brand_')) {
+			 traits = { [`brand_${brand}`]: event.traits };
 		}
-	});
-	if (getResponse.status === 404) {
-		// identity does not exist yet, so we need to create it
-		const hash = crypto
-			.createHash('sha256')
-			.update(`${event.traits.email}timeshiftMEDIA@@@@@@@@@@@@@@@@@@@@@@@@@`)
-			.digest('hex');
-		const userId = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`;
-		const endpoint = `${settings.apiHost}/user/v1/identity`;
-		const postResponse = await fetch(endpoint, {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${settings.timeshiftApiBearerToken}`,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ [settings.brand]: customerId, timeshift: userId })
-		});
-		console.log(
-			`POST'd identity for ${settings.brand} ${customerId} : ${userId}`
-		);
 	}
+
+	delete event.traits;
+	event.traits = traits;
+
 	console.log(event);
 	return event;
+}
+
+function camelToTitleWithSpaces(str) {
+	const result = str.replace(/([A-Z])/g, ' $1').trim(); // Insert space before capital letters
+	return result.charAt(0).toUpperCase() + result.slice(1); // Capitalize the first letter
 }
 
 /**
@@ -100,4 +105,8 @@ async function onAlias(event, settings) {
 async function onDelete(event, settings) {
 	// Learn more at https://segment.com/docs/partners/spec/#delete
 	return event;
+}
+
+if (typeof module !== 'undefined') {
+	module.exports = { onTrack, onIdentify, onGroup, onPage, onScreen, onAlias, onDelete, camelToTitleWithSpaces };
 }

@@ -243,3 +243,7 @@ async function onDelete(event, settings) {
 	// Learn more at https://segment.com/docs/partners/spec/#delete
 	throw new EventNotSupported('delete is not supported');
 }
+
+if (typeof module !== 'undefined') {
+	module.exports = { onTrack, onIdentify, onGroup, onPage, onScreen, onAlias, onDelete, camelToTitleWithSpaces, snakeToCamel };
+}
