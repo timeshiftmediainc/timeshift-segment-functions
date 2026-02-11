@@ -28,13 +28,11 @@ async function onIdentify(event, settings) {
 	if (traits) {
 		let brandName = traits?.brand || 'channelYoga'; // default brand is Channel Yoga
 
-		// if event.traits has exactly 1 key and that key starts with "brand_" then we don't need to transform the traits
-		// otherwise, put all traits under "brand_{brandName}"
-		if (
-			Object.keys(traits).length !== 1 ||
-			!Object.keys(traits)[0].startsWith('brand_')
-		) {
+		// put all traits under "brand_{brandName}" (if they aren't already there) and convert keys to camelCase
+		if (Object.keys(traits).length !== 1 || !Object.keys(traits)[0].startsWith('brand_')) {
 			event.traits = { [`brand_${brandName}`]: snakeToCamel(traits) };
+		} else if (Object.keys(traits).length === 1 && Object.keys(traits)[0].startsWith('brand_')) {
+			event.traits[Object.keys(traits)[0]] = snakeToCamel(event.traits[Object.keys(traits)[0]]);
 		}
 	}
 
@@ -49,7 +47,7 @@ async function onIdentify(event, settings) {
 		event.traits.lastName = traits.last_name;
 	}
 
-	console.log(JSON.stringify(event, null, 2));
+	console.log(event);
 
 	return event;
 }
