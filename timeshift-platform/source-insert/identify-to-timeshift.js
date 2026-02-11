@@ -40,13 +40,13 @@ async function onIdentify(event, settings) {
 
 		// if event.traits has exactly 1 key and that key starts with "brand_" then we don't need to transform the traits
 		// otherwise, put all traits under "brand_{brandName}"
-		if (Object.keys(traits).length !== 1 || !Object.keys(traits)[0].startsWith('brand_')) {
-			 traits = { [`brand_${brand}`]: event.traits };
+		if (
+			Object.keys(traits).length !== 1 ||
+			!Object.keys(traits)[0].startsWith('brand_')
+		) {
+			event.traits = { [`brand_${brand}`]: traits };
 		}
 	}
-
-	delete event.traits;
-	event.traits = traits;
 
 	console.log(event);
 	return event;
